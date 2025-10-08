@@ -1,0 +1,8 @@
+streamlit
+numpy
+pandas
+fastapi
+uvicorn
+mcp
+youtube-search-python
+nest_asyncio
