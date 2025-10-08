@@ -1,41 +1,43 @@
 # server_app.py
-import nest_asyncio
-nest_asyncio.apply()
-
+import os
+from fastapi import FastAPI
 from mcp.server.fastmcp import FastMCP
-from youtubesearchpython import VideosSearch
-import uvicorn
+from pydantic import BaseModel
+from serpapi import GoogleSearch
 
-# --- Initialize FastMCP ---
-mcp_server = FastMCP()
-app = mcp_server.app  # FastAPI app reference
+# Initialize FastMCP
+mcp_server = FastMCP(name="YouTubeSearchMCP")
 
-# --- Define tool with decorator ---
+# Create a FastAPI instance manually (FastMCP doesn't expose .app)
+app = FastAPI(title="YouTube Search MCP Server")
+
+# Define a YouTube search schema
+class YouTubeSearchInput(BaseModel):
+    query: str
+    max_results: int = 5
+
+# Define MCP tool endpoint
 @mcp_server.tool()
-async def youtube_search(query: str):
-    """Search YouTube videos for a given text query."""
-    try:
-        search = VideosSearch(query, limit=5)
-        results = search.result().get("result", [])
-        videos = [
-            {
-                "title": v["title"],
-                "link": v["link"],
-                "channel": v["channel"]["name"],
-                "published": v.get("publishedTime"),
-                "views": v.get("viewCount", {}).get("text"),
-            }
-            for v in results
-        ]
-        return {"query": query, "results": videos}
-    except Exception as e:
-        return {"error": str(e)}
+def youtube_search_tool(data: YouTubeSearchInput):
+    """Search YouTube videos using SerpAPI"""
+    params = {
+        "engine": "youtube",
+        "search_query": data.query,
+        "api_key": os.getenv("SERPAPI_API_KEY"),
+    }
+    search = GoogleSearch(params)
+    results = search.get_dict()
+    videos = results.get("video_results", [])
+    return videos[:data.max_results]
 
-# --- Optional: health check endpoint ---
+# ✅ Integrate FastMCP with FastAPI
+app.include_router(mcp_server.router, prefix="/mcp")
+
+# Root route for Render health check
 @app.get("/")
-async def root():
-    return {"status": "✅ YouTube MCP Server running", "tools": ["youtube_search"]}
+def home():
+    return {"status": "running", "service": "YouTubeSearchMCP"}
 
-# --- Run server ---
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
