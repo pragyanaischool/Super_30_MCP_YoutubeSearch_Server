@@ -6,4 +6,5 @@ uvicorn
 mcp
 youtube-search-python
 nest_asyncio
-serpapi
+pydantic
+serpapi==0.1.5
