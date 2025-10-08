@@ -1,15 +1,12 @@
 import os
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel
-from serpapi import GoogleSearch  # works with 'google-search-results' package
+from serpapi import GoogleSearch
 
 # -----------------------------------------
 # 1️⃣ Initialize MCP Server
 # -----------------------------------------
 mcp_server = FastMCP(name="YouTubeSearchMCP")
-
-# Expose FastAPI app from FastMCP
-app = mcp_server.fastapi  # ✅ no need to create a new FastAPI instance
 
 # -----------------------------------------
 # 2️⃣ Input Schema
@@ -36,21 +33,11 @@ def youtube_search_tool(data: YouTubeSearchInput):
     search = GoogleSearch(params)
     results = search.get_dict()
     videos = results.get("video_results", [])
-
-    # Limit results
     return videos[:data.max_results]
 
 # -----------------------------------------
-# 4️⃣ Health Check
-# -----------------------------------------
-@app.get("/")
-def home():
-    return {"status": "running", "service": "YouTubeSearchMCP"}
-
-# -----------------------------------------
-# 5️⃣ Run Server
+# 4️⃣ Start MCP Server
 # -----------------------------------------
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+    mcp_server.start(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
 
