@@ -3,7 +3,8 @@ import os
 from fastapi import FastAPI
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel
-from serpapi import GoogleSearch
+#from serpapi import GoogleSearch
+from serpapi.google_search import GoogleSearch
 
 # Initialize FastMCP
 mcp_server = FastMCP(name="YouTubeSearchMCP")
