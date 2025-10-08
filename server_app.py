@@ -1,4 +1,4 @@
-# server.py
+# server_app.py
 import nest_asyncio
 nest_asyncio.apply()
 
@@ -7,25 +7,22 @@ from mcp.server.fastmcp import FastMCP
 from youtubesearchpython import VideosSearch
 import uvicorn
 
-# --- Initialize FastAPI app ---
-app = FastAPI(title="🎥 YouTube MCP Server")
+# --- Initialize FastMCP (no app argument now) ---
+mcp_server = FastMCP()
 
-# --- Initialize FastMCP server ---
-mcp_server = FastMCP(app=app)
-
-# --- Tool 1: YouTube Search ---
+# --- Register Tool: YouTube Search ---
 async def youtube_search(query: str):
-    """Search YouTube for videos matching the given query."""
+    """Search YouTube for videos based on a query."""
     try:
         search = VideosSearch(query, limit=5)
-        results = search.result()['result']
+        results = search.result().get("result", [])
         videos = [
             {
-                "title": v['title'],
-                "link": v['link'],
-                "channel": v['channel']['name'],
-                "published": v.get('publishedTime'),
-                "views": v.get('viewCount', {}).get('text')
+                "title": v["title"],
+                "link": v["link"],
+                "channel": v["channel"]["name"],
+                "published": v.get("publishedTime"),
+                "views": v.get("viewCount", {}).get("text"),
             }
             for v in results
         ]
@@ -33,18 +30,18 @@ async def youtube_search(query: str):
     except Exception as e:
         return {"error": str(e)}
 
-# Register the tool with MCP
 mcp_server.register_tool(
     youtube_search,
     name="youtube_search",
-    description="Search YouTube for videos based on a text query."
+    description="Search YouTube videos based on a user query."
 )
 
-# --- Root endpoint ---
-@app.get("/")
-async def home():
-    return {"status": "✅ YouTube MCP Server is running!", "tools": ["youtube_search"]}
+# --- Access FastAPI app from FastMCP ---
+app = mcp_server.app
 
-# --- Run the server ---
+@app.get("/")
+async def root():
+    return {"status": "✅ YouTube MCP Server running", "tools": ["youtube_search"]}
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
